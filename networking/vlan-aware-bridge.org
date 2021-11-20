@@ -1,7 +1,7 @@
 #+OPTIONS: toc:2
 
 * Virtual Networks on a VLAN Aware Bridge
-This example demonstrates how to create a VLAN aware bridge, VLAN trunk uplink, and virtual interfaces with sytemd-networkd. It is assumed that systemd-networkd is installed and enabled on the host and guest VM.
+This example demonstrates how to create a VLAN aware bridge, VLAN trunk uplink, and virtual interfaces with systemd-networkd. It is assumed that systemd-networkd is installed and enabled on the host and guest VM.
 
 ** Host
 *** Create a VLAN aware bridge.
@@ -80,7 +80,7 @@ VLAN=2
 
 - This method works well with QEMU.
 
-- This method does not work well with virt-manager and libvirt as they do not support 802.1Q tags on a standard linux bridge. See https://libvirt.org/formatnetwork.html for more information. If you must use libvirt you can manaually tag VLANs on the interface using the ~bridge vlan~ command, however these settings will not persist on reboot.
+- This method does not work well with virt-manager and libvirt as they do not support 802.1Q tags on a standard linux bridge. See https://libvirt.org/formatnetwork.html for more information. If you must use libvirt you can manually tag VLANs on the interface using the ~bridge vlan~ command, however these settings will not persist on reboot.
 
 ~./qemu-vm.sh~
 
@@ -126,4 +126,51 @@ Name=enp1s0.2
 DHCP=yes
 #+end_src
 
-** TODO Container
+** Container
+Buildiing off the previous example the following demonstrates how to create a macvlan network in a VM to provide network segmentation to containers. It is assumed that podman is installed in the Virtual Machine.
+
+*** Start the CNI DHCP daemon
+
+The CNI DHCP daemon can be used as a DHCP client for the container allowing the container to lease an IP address from a DHCP server.
+
+#+begin_src bash
+sudo /usr/libexec/cni/dhcp daemon &
+#+end_src 
+
+*** Create a macvlan container network.
+
+The parent interface is the 802.1Q VLAN tagged sub-interface created in the previous example. Podman supports running containers as an unpriveleged user, however the macvlan podman network requires root priveleges, see https://docs.podman.io/en/latest/markdown/podman-network-create.1.html for more information.
+    
+#+begin_src bash
+sudo podman network create -d macvlan -o parent=enp1s0.2 macvlan2
+#+end_src
+
+*** Pull a container image.
+
+The darkhttpd Alpine container is used fr validation of container networking, and defaults to serving an empty HTTP page on port 8080.
+
+#+begin_src
+sudo podman pull docker.io/alpinelinux/darkhttpd
+#+end_src
+    
+*** Run the container using the macvlan container network.
+
+The command runs and detaches from the darkhttpd Apline container.
+
+#+begin_src bash
+sudo podman run -d --net macvlan2 --name=alpine_darkhttpd docker.io/alpinelinux/darkhttpd
+#+end_src
+
+*** Validate container network
+
+Obtain the container's IP address.
+
+#+begin_src bash
+sudo podman inspect --format '{{.NetworkSettings.Networks.macvlan2.IPAddress }}' alpine_darkhttpd
+#+end_src
+
+Use curl to send a HTTP request to the container. The HTTP request can not originate from the VM due to the way the macvlan driver isolates the container's network namespace from the container host network namespace, see https://github.com/moby/libnetwork/blob/master/docs/macvlan.md for more information.
+
+#+begin_src
+curl http://x.x.x.x:8080
+#+end_src
