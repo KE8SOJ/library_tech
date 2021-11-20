@@ -127,11 +127,12 @@ DHCP=yes
 #+end_src
 
 ** Container
-Buildiing off the previous example the following demonstrates how to create a macvlan network in a VM to provide network segmentation to containers. It is assumed that podman is installed in the Virtual Machine.
+   
+Buildiing off the previous example the following example demonstrates how to create a macvlan network in a VM to provide network segmentation for containers. It is assumed that podman is installed on the Virtual Machine and a DHCP server is listening on the LAN segment.
 
-*** Start the CNI DHCP daemon
+*** Start the CNI DHCP daemon.
 
-The CNI DHCP daemon can be used as a DHCP client for the container allowing the container to lease an IP address from a DHCP server.
+The CNI DHCP daemon is a DHCP client for the container, and allow the container to lease an IP address from a DHCP server.
 
 #+begin_src bash
 sudo /usr/libexec/cni/dhcp daemon &
@@ -147,7 +148,7 @@ sudo podman network create -d macvlan -o parent=enp1s0.2 macvlan2
 
 *** Pull a container image.
 
-The darkhttpd Alpine container is used fr validation of container networking, and defaults to serving an empty HTTP page on port 8080.
+The darkhttpd Alpine container is used for validating container networking, and defaults to serving an empty HTTP page on port 8080.
 
 #+begin_src
 sudo podman pull docker.io/alpinelinux/darkhttpd
@@ -161,7 +162,7 @@ The command runs and detaches from the darkhttpd Apline container.
 sudo podman run -d --net macvlan2 --name=alpine_darkhttpd docker.io/alpinelinux/darkhttpd
 #+end_src
 
-*** Validate container network
+*** Validate the container network.
 
 Obtain the container's IP address.
 
