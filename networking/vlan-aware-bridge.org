@@ -1,0 +1,103 @@
+* Virtual Networks on a VLAN Aware Bridge
+This example demonstrates how to create a VLAN aware bridge, VLAN trunk uplink, and virtual interfaces with sytemd-networkd. It is assumed that systemd-networkd is installed and enabled on the host and guest VM.
+
+** Host
+1. Create a VLAN aware bridge. No DefualtPVID for untagged frames is specified for security.
+
+#+begin_src /etc/systemd/network/vlan-bridge.netdev
+[NetDev]
+Name=vlan-bridge
+Kind=bridge
+
+[Bridge]
+VLANFiltering=1
+DefaultPVID=none
+#+end_src
+
+#+begin_src /etc/systemd/network/vlan-bridge.network
+[Match]
+Name=vlan-bridge
+
+[BridgeVLAN]
+VLAN=2
+#+end_src
+
+2. Create a VLAN tunk uplink interface. The PHY `eno1` is enslaved to the bridge and tagged with an 802.1Q VLAN.
+
+#+begin_src /etc/systemd/network/eno1.network
+[Match]
+Name=eno1
+
+[Network]
+Bridge=vlan-bridge
+
+[BridgeVLAN]
+VLAN=2
+#+end_src
+
+3. Create a tap interface. The tap virtual interface is enslaved to the bridge and tagged with an 802.1Q VLAN.
+
+#+begin_src /etc/systemd/network/tap2.netdev
+[NetDev]
+Name=tap2
+Kind=tap
+
+[Tap]
+MultiQueue=yes
+PacketInfo=yes
+#+end_src
+
+#+begin_src /etc/systemd/network/tap2.network
+[Match]
+Name=tap2
+
+[Network]
+Bridge=vlan-bridge
+
+[BridgeVLAN]
+VLAN=2
+#+end_src
+
+4. Configure the Virtual Machine to use the tap network interface.
+
+*NOTE:*
+
+   - This method works well with QEMU.
+
+   - This method does not work well with virt-manager and libvirt as they do not support 802.1Q tags on a standard linux bridge. See https://libvirt.org/formatnetwork.html for more information. If you must use libvirt you can manaually tag VLANs on the interface using the `bridge vlan` command, however these settings will not persist on reboot.
+
+#+begin_src qemu-vm.sh
+#!/bin/bash
+exec qemu-system-x86_64 \
+     -netdev tap,id=tap2,ifname=tap2,script=no,downscript=no \
+     -device virtio-net-pci,netdev=tap2 \
+#+end_src
+
+** Virtual Machine
+
+5. Configure the VM with a 802.1Q sub-interface.
+#+begin_src /etc/systemd/network/enp1s0.network
+[Match]
+Name=enp1s0
+
+[Network]
+DHCP=ipv4
+VLAN=enp1s0.2
+#+end_src
+
+#+begin_src /etc/systemd/network/enp1s0.2.netdev
+[NetDev]
+Name=enp1s0.2
+Kind=vlan
+
+[VLAN]
+Id=2
+#+end_src
+
+#+begin_src /etc/systemd/network/enp1s0.2.network
+[Match]
+Name=enp1s0.2
+
+[Network]
+DHCP=yes
+#+end_src
