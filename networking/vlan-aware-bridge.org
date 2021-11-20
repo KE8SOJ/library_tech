@@ -1,5 +1,4 @@
-#+OPTIONS: toc:nil
-#+TOC: headlines 2
+#+OPTIONS: toc:2
 
 * Virtual Networks on a VLAN Aware Bridge
 This example demonstrates how to create a VLAN aware bridge, VLAN trunk uplink, and virtual interfaces with sytemd-networkd. It is assumed that systemd-networkd is installed and enabled on the host and guest VM.
@@ -81,7 +80,7 @@ VLAN=2
 
 - This method works well with QEMU.
 
-- This method does not work well with virt-manager and libvirt as they do not support 802.1Q tags on a standard linux bridge. See https://libvirt.org/formatnetwork.html for more information. If you must use libvirt you can manaually tag VLANs on the interface using the `bridge vlan` command, however these settings will not persist on reboot.
+- This method does not work well with virt-manager and libvirt as they do not support 802.1Q tags on a standard linux bridge. See https://libvirt.org/formatnetwork.html for more information. If you must use libvirt you can manaually tag VLANs on the interface using the ~bridge vlan~ command, however these settings will not persist on reboot.
 
 ~./qemu-vm.sh~
 
@@ -93,7 +92,6 @@ exec qemu-system-x86_64 \
 #+end_src
 
 ** Virtual Machine
-
 *** Configure the VM with a 802.1Q sub-interface.
 
 ~/etc/systemd/network/enp1s0.network~
