@@ -13,7 +13,9 @@
     - [[#pull-a-container-image][Pull a container image]]
     - [[#run-the-container-using-the-macvlan-container-network][Run the container using the macvlan container network]]
     - [[#validate-the-container-network][Validate the container network]]
-
+  - [[#cni-plugin-onfig][CNI Plugin Config]]
+    - [[#vlan-and-ipam-cni-plugins][VLAN and IPAM CNI plugins]]
+      
 * Virtual Networks on a VLAN Aware Bridge
 This example demonstrates how to create a VLAN aware bridge, VLAN trunk uplink, and virtual interfaces with systemd-networkd. It is assumed that systemd-networkd is installed and enabled on the host and guest VM.
 
@@ -160,6 +162,24 @@ The parent interface is the 802.1Q VLAN tagged sub-interface created in the prev
 sudo podman network create -d macvlan -o parent=enp1s0.2 macvlan2
 #+end_src
 
+The ~podman network create~ command will generate network configuration file called ~/etc/cni/net.d/macvlan2.conflist~. Network configuration files manually placed in the ~/etc/cni/net.d/~ directory are also available to containers.
+
+#+begin_src json /etc/cni/net.d/macvlan9.conflist
+{
+   "cniVersion": "0.4.0",
+   "name": "macvlan2",
+   "plugins": [
+      {
+         "type": "macvlan",
+         "master": "enp1s0.2",
+         "ipam": {
+            "type": "dhcp"
+         }
+      }		       
+   [		     
+}
+#+end_src
+
 *** Pull a container image.
 
 The darkhttpd Alpine container is used for validating container networking, and defaults to serving an empty HTTP page on port 8080.
@@ -188,4 +208,38 @@ Use curl to send a HTTP request to the container. The HTTP request can not origi
 
 #+begin_src
 curl http://x.x.x.x:8080
+#+end_src
+
+** CNI Plugin Config
+*** VLAN CNI plugin
+The VLAN CNI plugin can be used with containers to interface directly with VLAN aware bridges. The example configuration demonstrates how to use the VLAN and IPAM CNI plugins to add a VLAN interface to a bridge and statically configure the network. A static network configuration eliminates the container's dependency on the CNI DHCP daemon.
+
+~/etc/cni/net.d/podvlan2.conflist~
+#+begin_src json /etc/cni/net.d/podvlan2.conflist
+{
+   "cniVersion": "0.4.0",
+   "name": "podvlan2",
+   "plugins": [
+      {
+         "type": "vlan",
+         "master": "vlan-bridge",
+         "vlanId": 2,
+         "ipam": {
+            "type": "static",
+            "addresses": [
+	       {
+	          "address": "10.0.20.2/24",
+		  "gateway": "10.0.20.1"
+	       }
+	    ],
+	    "routes": [
+	       { "dst": "0.0.0.0/0" }
+	    ],
+	    "dns": {
+	       "nameservers" : ["9.9.9.9"]
+	    }
+	 }
+      }
+   ]
+}
 #+end_src
