@@ -1,4 +1,17 @@
-#+OPTIONS: toc:2
+* Table of Contents                                           :TOC:
+- [[#Host][Host]]
+  - [[#Create a VLAN aware bridge][Create a VLAN aware bridge]]
+  - [[#Create a VLAN trunk uplink interface][Create a VLAN trunk uplink interface]]
+  - [[#Create a tap interface][Create a tap interface]]
+  - [[#Configure the Virtual Machine to use the tap network interface][Configure the Virtual Machine to use the tap network interface]]
+- [[#Virtual Machine][ Virtual Machine]]
+  - [[#Configure the VM with a 802.1Q sub-interface][Configure the VM with a 802.1Q sub-interface]]
+- [[#Container][Container]]
+  - [[#Start the CNI DHCP daemon][Start the CNI DHCP daemon]]
+  - [[#Create a macvlan container network][Create a macvlan container network]]
+  - [[#Pull a container image][Pull a container image]]
+  - [[#Run the container using the macvlan container network][Run the container using the macvlan container network]]
+  - [[#Validate the container network][Validate the container network]]
 
 * Virtual Networks on a VLAN Aware Bridge
 This example demonstrates how to create a VLAN aware bridge, VLAN trunk uplink, and virtual interfaces with systemd-networkd. It is assumed that systemd-networkd is installed and enabled on the host and guest VM.
